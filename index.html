@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <script
+      src="https://unpkg.com/react@16/umd/react.production.min.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"
+      crossorigin
+    ></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/5.0.1/react-router-dom.js"></script>
+    <link rel="stylesheet" type="text/css" href="./style.css" />
+    <title>Acme Product Offering React</title>
+  </head>
+  <body>
+    <h1>ACME PRODUCT AVERAGES REACT</h1>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // console.log(ReactRouterDOM);
+      const root = document.querySelector("#root");
+      const PRODUCTS_URI = `https://acme-users-api-rev.herokuapp.com/api/products`;
+      const OFFERINGS_URI = `https://acme-users-api-rev.herokuapp.com/api/offerings`;
+      const COMPANIES_URI = `https://acme-users-api-rev.herokuapp.com/api/companies`;
+      const { render } = ReactDOM;
+      const { Component } = React;
+      const { HashRouter, Switch, Route, Redirect, Link } = ReactRouterDOM;
+
+      const calculate_avg = arr => {
+        if (arr.length > 0) {
+          return arr.reduce((accum, ele) => accum + ele, 0) / arr.length;
+        }
+        throw "N/A";
+      };
+
+      const Nav = props => {
+        console.log(props.location.pathname);
+        const current = props.location.pathname;
+        return (
+          <nav>
+            <Link to="/home" className={current === "/home" ? "selected" : ""}>
+              Home
+            </Link>
+            <Link
+              to="/products"
+              className={current === "/products" ? "selected" : ""}
+            >
+              Products
+            </Link>
+          </nav>
+        );
+      };
+
+      const Home = ({ products }) => {
+        return (
+          <div>
+            <h2>Home</h2>
+            <div>
+              We have {products.length} products with an average price of{" "}
+              {// Q1. Why isn't this work?
+              // calculate_avg(products.map(product => product.suggestedPrice));
+              products.reduce((accum, ele) => accum + ele.suggestedPrice, 0)}
+            </div>
+          </div>
+        );
+      };
+
+      const Products = ({ products, offerings, companies }) => {
+        return (
+          <div>
+            <h2>Products</h2>
+            <ul>
+              {products.map(product => {
+                const offers = offerings.filter(
+                  offer => product.id === offer.productId
+                );
+                // .map(offer => { return offer.price});
+
+                // console.log(offers);
+                const priceArr = offers.map(offer => offer.price);
+
+                const avgPrice = calculate_avg(priceArr).toFixed(2);
+                const lowestPrice = Math.min(...priceArr);
+                const offeredBy = [];
+                const coId = offers
+                  .filter(offer => offer.price === lowestPrice)
+                  .forEach(x => {
+                    const company = companies.find(
+                      company => company.id === x.companyId
+                    );
+                    // console.log(company.name);
+                    offeredBy.push(company.name);
+                  });
+
+                return (
+                  <li class="list-box" type="none">
+                    <div>
+                      <label>Products :</label> {product.name}
+                    </div>
+                    <div>
+                      <label>Suggested Price :</label> {product.suggestedPrice}
+                    </div>
+                    <div>
+                      <label>Average Price :</label> {avgPrice}
+                    </div>
+                    <div>
+                      <label>Lowest Price :</label> {lowestPrice} offered by{" "}
+                      {offeredBy.join(" | ")}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      };
+
+      class App extends Component {
+        constructor() {
+          super();
+          this.state = {
+            products: [],
+            offerings: [],
+            companies: []
+          };
+        }
+
+        componentDidMount() {
+          const { products, offerings, companies } = this.state;
+          Promise.all([
+            axios.get(PRODUCTS_URI),
+            axios.get(OFFERINGS_URI),
+            axios.get(COMPANIES_URI)
+          ])
+            .then(response => response.map(set => set.data))
+            .then(data =>
+              this.setState({
+                products: data[0],
+                offerings: data[1],
+                companies: data[2]
+              })
+            );
+        }
+
+        render() {
+          // console.log(this.state)
+          const { products, offerings, companies } = this.state;
+
+          return (
+            <HashRouter>
+              <Route component={Nav} />
+              <Switch>
+                <Route path="/home" render={() => <Home {...this.state} />} />
+                <Route
+                  path="/products"
+                  render={() => <Products {...this.state} />}
+                />
+                <Redirect path="/home" />
+              </Switch>
+            </HashRouter>
+          );
+        }
+      }
+
+      render(<App />, root);
+    </script>
+  </body>
+</html>

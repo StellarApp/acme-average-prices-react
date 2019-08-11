@@ -1,0 +1,22 @@
+label {
+  font-weight: bold;
+}
+
+.selected {
+  border: solid blueviolet 1px;
+  background: whitesmoke;
+  color: slateblue;
+}
+
+nav a {
+    padding: 20px
+}
+nav {
+  display: flex;
+  justify-content: space-around;
+}
+
+.list-box {
+  border-bottom: solid goldenrod 1px;
+  padding: 5px;
+}
